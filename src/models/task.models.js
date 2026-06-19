@@ -5,10 +5,12 @@ const taskSchema = new mongoose.Schema(
     taskName: {
       type: String,
       required: [true, "Task name is required"],
+      trim: true,
     },
     description: {
       type: String,
       required: [true, "Task description is required"],
+      trim: true,
     },
     status: {
       type: String,

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 const userSchema = new mongoose.Schema(
@@ -7,12 +7,14 @@ const userSchema = new mongoose.Schema(
     fullName: {
       type: String,
       required: [true, "Full name is required"],
+      trim: true,
     },
     email: {
       type: String,
       required: [true, "Email is required"],
       unique: [true, "Email already exists"],
       lowercase: true,
+      trim: true,
     },
     password: {
       type: String,
@@ -24,17 +26,19 @@ const userSchema = new mongoose.Schema(
       enum: ["admin", "user"],
       default: "user",
     },
+    refreshToken: {
+      type: String,
+    },
   },
   {
     timestamps: true,
   },
 );
 
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
   if (this.isModified("password")) {
     // hashing the password before saving it to the database
     this.password = await bcrypt.hash(this.password, 16);
-    next();
   }
 });
 
