@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Internship Management System</title>
+  <style>
+    :root {
+      --bg: #0f1420;
+      --panel: #1a2030;
+      --panel-2: #222a3d;
+      --border: #2e3650;
+      --text: #e6e9f0;
+      --muted: #9aa3b8;
+      --accent: #4f7cff;
+      --accent-2: #3a63d8;
+      --green: #2ecc71;
+      --red: #e74c3c;
+      --amber: #f39c12;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 22px; background: var(--panel); border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 10;
+    }
+    header h1 { font-size: 18px; margin: 0; }
+    .who { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 12px; }
+    .role-badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+    .role-admin { background: #3a2a5a; color: #c9a8ff; }
+    .role-user { background: #1f3a2e; color: #8ce0b0; }
+    main { max-width: 980px; margin: 0 auto; padding: 24px 18px 80px; }
+    .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px;
+    }
+    .card h2 { margin: 0 0 14px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+    .card h2 .hint { font-size: 11px; color: var(--muted); font-weight: 400; }
+    label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+    input, select, textarea {
+      width: 100%; padding: 9px 11px; background: var(--panel-2); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 60px; }
+    button {
+      margin-top: 12px; padding: 9px 16px; background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    button:hover { background: var(--accent-2); }
+    button.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    button.ghost:hover { background: var(--panel-2); }
+    button.danger { background: var(--red); }
+    button.danger:hover { background: #c0392b; }
+    button.sm { padding: 5px 10px; font-size: 12px; margin-top: 0; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+    .tabs button { margin: 0; background: var(--panel); border: 1px solid var(--border); }
+    .tabs button.active { background: var(--accent); border-color: var(--accent); }
+    .hidden { display: none !important; }
+    .msg { margin: 12px 0; padding: 10px 12px; border-radius: 8px; font-size: 13px; display: none; }
+    .msg.show { display: block; }
+    .msg.ok { background: #173a2a; color: #9fe6bf; border: 1px solid #245c41; }
+    .msg.err { background: #3a1c1c; color: #f1a9a9; border: 1px solid #5c2a2a; }
+    .task {
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 10px;
+    }
+    .task .top { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+    .task .name { font-weight: 600; }
+    .task .meta { font-size: 12px; color: var(--muted); margin-top: 3px; word-break: break-all; }
+    .status { padding: 2px 9px; border-radius: 999px; font-size: 11px; text-transform: capitalize; white-space: nowrap; }
+    .s-pending { background: #3a3320; color: #f0d58a; }
+    .s-in-progress { background: #20303a; color: #8acdf0; }
+    .s-submitted { background: #2a2350; color: #b0a8ff; }
+    .s-completed { background: #1f3a2e; color: #8ce0b0; }
+    .id-pill {
+      font-family: ui-monospace, monospace; font-size: 11px; background: var(--bg);
+      padding: 2px 7px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;
+    }
+    .id-pill:hover { border-color: var(--accent); }
+    .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+    .callout {
+      background: #1d2436; border: 1px solid var(--border); border-left: 3px solid var(--amber);
+      padding: 9px 12px; border-radius: 6px; font-size: 12px; color: var(--muted); margin-bottom: 12px;
+    }
+    .sub-details {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px; margin: 10px 0; font-size: 13px;
+    }
+    .sub-details .field { margin-bottom: 8px; }
+    .sub-details .field:last-child { margin-bottom: 0; }
+    .sub-details .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 2px; }
+    .sub-details a { color: var(--accent); word-break: break-all; }
+    .sub-details .file-btn {
+      display: inline-block; margin-top: 0; padding: 6px 12px; background: var(--accent);
+      color: #fff; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;
+    }
+    .sub-details .file-btn:hover { background: var(--accent-2); }
+    .sub-details .none { color: var(--muted); font-style: italic; }
+    .actions-inline { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+    .actions-inline select { width: auto; flex: 1; min-width: 130px; }
+    details { margin-top: 8px; }
+    summary { cursor: pointer; font-size: 12px; color: var(--accent); }
+    details[open] summary { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎯 Internship Management System</h1>
+    <div class="who">
+      <span id="whoami"></span>
+      <button id="logoutBtn" class="ghost sm hidden" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ AUTH (logged out) ============ -->
+    <section id="authView">
+      <div class="tabs">
+        <button id="tabLogin" class="active" onclick="switchAuth('login')">Login</button>
+        <button id="tabRegister" onclick="switchAuth('register')">Register (intern)</button>
+      </div>
+
+      <div class="grid">
+        <div class="card" id="loginCard">
+          <h2>Login</h2>
+          <label>Email</label>
+          <input id="loginEmail" type="email" placeholder="you@example.com" />
+          <label>Password</label>
+          <input id="loginPassword" type="password" placeholder="••••••" />
+          <button onclick="doLogin()">Login</button>
+          <div id="loginMsg" class="msg"></div>
+        </div>
+
+        <div class="card hidden" id="registerCard">
+          <h2>Register <span class="hint">creates a regular user (intern)</span></h2>
+          <label>Full name</label>
+          <input id="regName" placeholder="Jane Doe" />
+          <label>Email</label>
+          <input id="regEmail" type="email" placeholder="jane@example.com" />
+          <label>Password <span style="color:var(--muted)">(min 6 chars)</span></label>
+          <input id="regPassword" type="password" placeholder="••••••" />
+          <button onclick="doRegister()">Register</button>
+          <div id="registerMsg" class="msg"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INTERN DASHBOARD ============ -->
+    <section id="internView" class="hidden">
+      <div class="callout">
+        Your user ID: <span class="id-pill" id="myIdPill" onclick="copyText(state.userId)"></span>
+        &nbsp;— share this with your admin so they can assign you tasks.
+      </div>
+      <div class="grid">
+        <div class="card" style="grid-column: 1 / -1;">
+          <h2>My Tasks <span class="hint">tasks assigned to you</span>
+            <button class="ghost sm" style="margin-left:auto" onclick="loadMyTasks()">↻ Refresh</button>
+          </h2>
+          <div id="myTasks"></div>
+        </div>
+
+        <div class="card">
+          <h2>Change Password</h2>
+          <label>Old password</label>
+          <input id="oldPw" type="password" />
+          <label>New password</label>
+          <input id="newPw" type="password" />
+          <button onclick="changePassword()">Update password</button>
+          <div id="pwMsg" class="msg"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ADMIN DASHBOARD ============ -->
+    <section id="adminView" class="hidden">
+      <div class="grid">
+        <div class="card">
+          <h2>Create &amp; Assign Task</h2>
+          <label>Task name</label>
+          <input id="taskName" placeholder="Build login page" />
+          <label>Description</label>
+          <textarea id="taskDesc" placeholder="Implement the login UI..."></textarea>
+          <label>Assign to intern
+            <button class="ghost sm" style="float:right;margin:0" onclick="loadInterns()">↻</button>
+          </label>
+          <select id="taskAssignee"><option value="">Loading interns…</option></select>
+          <label>Deadline</label>
+          <input id="taskDeadline" type="date" />
+          <button onclick="createTask()">Create task</button>
+          <div id="createMsg" class="msg"></div>
+        </div>
+
+        <div class="card">
+          <h2>Review a Submission</h2>
+          <div class="callout">Pick a submission to review. Sets its task to <b>completed</b>.</div>
+          <label>Submission
+            <button class="ghost sm" style="float:right;margin:0" onclick="loadSubmissions()">↻</button>
+          </label>
+          <select id="reviewSubId" onchange="showSubDetails()"><option value="">Loading submissions…</option></select>
+          <div id="subDetails" class="sub-details hidden"></div>
+          <label>Review</label>
+          <textarea id="reviewText" placeholder="Great work, approved."></textarea>
+          <button onclick="sendReview()">Submit review</button>
+          <div id="reviewMsg" class="msg"></div>
+        </div>
+
+        <div class="card">
+          <h2>Delete Intern</h2>
+          <div class="callout">Blocked if the intern has pending / in-progress tasks.</div>
+          <label>Intern</label>
+          <select id="delInternId"><option value="">Loading interns…</option></select>
+          <button class="danger" onclick="deleteIntern()">Delete intern</button>
+          <div id="delInternMsg" class="msg"></div>
+        </div>
+
+        <div class="card">
+          <h2>Change Password</h2>
+          <label>Old password</label>
+          <input id="oldPwA" type="password" />
+          <label>New password</label>
+          <input id="newPwA" type="password" />
+          <button onclick="changePassword(true)">Update password</button>
+          <div id="pwMsgA" class="msg"></div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+          <h2>All Tasks
+            <button class="ghost sm" style="margin-left:auto" onclick="loadAllTasks()">↻ Refresh</button>
+          </h2>
+          <div id="allTasks"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API = "/api/v1";
+    const state = {
+      token: localStorage.getItem("ims_token") || "",
+      role: localStorage.getItem("ims_role") || "",
+      userId: localStorage.getItem("ims_userId") || "",
+      name: localStorage.getItem("ims_name") || "",
+    };
+
+    // ---------- helpers ----------
+    function msg(id, text, ok) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = "msg show " + (ok ? "ok" : "err");
+      if (ok) setTimeout(() => el.classList.remove("show"), 4000);
+    }
+    function copyText(t) {
+      navigator.clipboard?.writeText(t);
+    }
+    function statusClass(s) { return "status s-" + s; }
+
+    async function api(path, { method = "GET", body, auth = true, form = false } = {}) {
+      const headers = {};
+      if (auth && state.token) headers["Authorization"] = "Bearer " + state.token;
+      let payload;
+      if (form) {
+        payload = body; // FormData
+      } else if (body !== undefined) {
+        headers["Content-Type"] = "application/json";
+        payload = JSON.stringify(body);
+      }
+      const res = await fetch(API + path, { method, headers, body: payload });
+      const raw = await res.text();
+      let data = null;
+      try { data = JSON.parse(raw); } catch (_) { /* HTML error page */ }
+      if (!res.ok) {
+        const m = (data && (data.message || data.responseMessage)) || `Request failed (${res.status})`;
+        throw new Error(m);
+      }
+      return data;
+    }
+
+    // ---------- auth view ----------
+    function switchAuth(which) {
+      document.getElementById("tabLogin").classList.toggle("active", which === "login");
+      document.getElementById("tabRegister").classList.toggle("active", which === "register");
+      document.getElementById("loginCard").classList.toggle("hidden", which !== "login");
+      document.getElementById("registerCard").classList.toggle("hidden", which !== "register");
+    }
+
+    async function doRegister() {
+      try {
+        const body = {
+          fullName: document.getElementById("regName").value.trim(),
+          email: document.getElementById("regEmail").value.trim(),
+          password: document.getElementById("regPassword").value,
+        };
+        const r = await api("/users/register", { method: "POST", body, auth: false });
+        const id = r.data.createdUser._id;
+        msg("registerMsg", "Registered! Your user ID: " + id + " — you can log in now.", true);
+        document.getElementById("loginEmail").value = body.email;
+      } catch (e) { msg("registerMsg", e.message, false); }
+    }
+
+    async function doLogin() {
+      try {
+        const body = {
+          email: document.getElementById("loginEmail").value.trim(),
+          password: document.getElementById("loginPassword").value,
+        };
+        const r = await api("/users/login", { method: "POST", body, auth: false });
+        const u = r.data.loggedInUser;
+        state.token = r.data.accessToken;
+        state.role = u.role;
+        state.userId = u._id;
+        state.name = u.fullName;
+        localStorage.setItem("ims_token", state.token);
+        localStorage.setItem("ims_role", state.role);
+        localStorage.setItem("ims_userId", state.userId);
+        localStorage.setItem("ims_name", state.name);
+        render();
+      } catch (e) { msg("loginMsg", e.message, false); }
+    }
+
+    async function doLogout() {
+      try { await api("/users/logout", { method: "POST" }); } catch (_) {}
+      state.token = state.role = state.userId = state.name = "";
+      localStorage.clear();
+      render();
+    }
+
+    // ---------- intern ----------
+    async function loadMyTasks() {
+      const wrap = document.getElementById("myTasks");
+      wrap.innerHTML = '<div class="empty">Loading…</div>';
+      try {
+        const r = await api("/tasks/my-tasks");
+        const tasks = r.data.tasks || [];
+        if (!tasks.length) { wrap.innerHTML = '<div class="empty">No tasks assigned yet.</div>'; return; }
+        wrap.innerHTML = tasks.map(internTaskCard).join("");
+      } catch (e) { wrap.innerHTML = `<div class="empty">${e.message}</div>`; }
+    }
+
+    function internTaskCard(t) {
+      const assigner = t.assignedBy ? (t.assignedBy.fullName || "admin") : "admin";
+      const done = t.status === "completed";
+      const submitted = t.status === "submitted" || done;
+      return `
+        <div class="task">
+          <div class="top">
+            <div>
+              <div class="name">${esc(t.taskName)}</div>
+              <div class="meta">${esc(t.description || "")}</div>
+              <div class="meta">By ${esc(assigner)} · Due ${fmtDate(t.deadline)} · Task ID:
+                <span class="id-pill" onclick="copyText('${t._id}')">${t._id}</span>
+              </div>
+            </div>
+            <span class="${statusClass(t.status)}">${t.status}</span>
+          </div>
+          <div class="actions-inline">
+            <select id="st_${t._id}" ${done ? "disabled" : ""}>
+              ${["pending","in-progress","submitted","completed"].map(s =>
+                `<option value="${s}" ${s===t.status?"selected":""}>${s}</option>`).join("")}
+            </select>
+            <button class="sm" ${done?"disabled":""} onclick="updateStatus('${t._id}')">Update status</button>
+          </div>
+          ${submitted ? "" : `
+          <details>
+            <summary>Submit work</summary>
+            <label>Link (optional)</label>
+            <input id="lnk_${t._id}" placeholder="https://github.com/..." />
+            <label>File (optional)</label>
+            <input id="file_${t._id}" type="file" />
+            <label>Description (optional)</label>
+            <input id="sdesc_${t._id}" placeholder="Notes about your submission" />
+            <button class="sm" onclick="submitTask('${t._id}')">Submit task</button>
+            <div id="submsg_${t._id}" class="msg"></div>
+          </details>`}
+        </div>`;
+    }
+
+    async function updateStatus(taskId) {
+      try {
+        const status = document.getElementById("st_" + taskId).value;
+        await api("/tasks/" + taskId, { method: "PATCH", body: { status } });
+        loadMyTasks();
+      } catch (e) { alert(e.message); }
+    }
+
+    async function submitTask(taskId) {
+      const mid = "submsg_" + taskId;
+      try {
+        const link = document.getElementById("lnk_" + taskId).value.trim();
+        const desc = document.getElementById("sdesc_" + taskId).value.trim();
+        const fileInput = document.getElementById("file_" + taskId);
+        const file = fileInput.files[0];
+        if (!link && !file) { msg(mid, "Provide a link or a file.", false); return; }
+        const fd = new FormData();
+        if (desc) fd.append("description", desc);
+        if (link) fd.append("link", link);
+        if (file) fd.append("submission", file);
+        const r = await api("/submit/" + taskId, { method: "POST", body: fd, form: true });
+        const sid = r.data.submission._id;
+        msg(mid, "Submitted! Submission ID: " + sid + " — give this to your admin for review.", true);
+        setTimeout(loadMyTasks, 1500);
+      } catch (e) { msg(mid, e.message, false); }
+    }
+
+    // ---------- admin ----------
+    async function loadInterns() {
+      const assignSel = document.getElementById("taskAssignee");
+      const delSel = document.getElementById("delInternId");
+      try {
+        const r = await api("/users/interns");
+        const interns = r.data.interns || [];
+        if (!interns.length) {
+          const empty = '<option value="">No interns yet</option>';
+          assignSel.innerHTML = empty;
+          delSel.innerHTML = empty;
+          return;
+        }
+        const opts = '<option value="">— select intern —</option>' +
+          interns.map(i =>
+            `<option value="${i._id}">${esc(i.fullName)} (${esc(i.email)})</option>`
+          ).join("");
+        assignSel.innerHTML = opts;
+        delSel.innerHTML = opts;
+      } catch (e) {
+        const err = `<option value="">${esc(e.message)}</option>`;
+        assignSel.innerHTML = err;
+        delSel.innerHTML = err;
+      }
+    }
+
+    async function createTask() {
+      try {
+        const body = {
+          taskName: document.getElementById("taskName").value.trim(),
+          description: document.getElementById("taskDesc").value.trim(),
+          assignedTo: document.getElementById("taskAssignee").value.trim(),
+          deadline: document.getElementById("taskDeadline").value,
+        };
+        const r = await api("/tasks", { method: "POST", body });
+        msg("createMsg", "Task created: " + r.data.task._id, true);
+        document.getElementById("taskName").value = "";
+        document.getElementById("taskDesc").value = "";
+        loadAllTasks();
+      } catch (e) { msg("createMsg", e.message, false); }
+    }
+
+    async function loadAllTasks() {
+      const wrap = document.getElementById("allTasks");
+      wrap.innerHTML = '<div class="empty">Loading…</div>';
+      try {
+        const r = await api("/tasks");
+        const tasks = r.data.tasks || [];
+        if (!tasks.length) { wrap.innerHTML = '<div class="empty">No tasks yet.</div>'; return; }
+        wrap.innerHTML = tasks.map(adminTaskCard).join("");
+      } catch (e) { wrap.innerHTML = `<div class="empty">${e.message}</div>`; }
+    }
+
+    function adminTaskCard(t) {
+      const who = t.assignedTo ? (t.assignedTo.fullName || t.assignedTo) : "—";
+      return `
+        <div class="task">
+          <div class="top">
+            <div>
+              <div class="name">${esc(t.taskName)}</div>
+              <div class="meta">${esc(t.description || "")}</div>
+              <div class="meta">Assignee: ${esc(who)} · Due ${fmtDate(t.deadline)} · Task ID:
+                <span class="id-pill" onclick="copyText('${t._id}')">${t._id}</span>
+              </div>
+            </div>
+            <span class="${statusClass(t.status)}">${t.status}</span>
+          </div>
+          <div class="actions-inline">
+            <button class="danger sm" onclick="deleteTask('${t._id}')">Delete task</button>
+          </div>
+        </div>`;
+    }
+
+    async function deleteTask(taskId) {
+      if (!confirm("Delete this task and its submission?")) return;
+      try { await api("/tasks/" + taskId, { method: "DELETE" }); loadAllTasks(); }
+      catch (e) { alert(e.message); }
+    }
+
+    let submissionsCache = [];
+
+    async function loadSubmissions() {
+      const sel = document.getElementById("reviewSubId");
+      try {
+        const r = await api("/submit");
+        const subs = r.data.submissions || [];
+        submissionsCache = subs;
+        showSubDetails(); // reset details panel
+        if (!subs.length) {
+          sel.innerHTML = '<option value="">No submissions yet</option>';
+          return;
+        }
+        sel.innerHTML = '<option value="">— select submission —</option>' +
+          subs.map(s => {
+            const task = s.taskId ? esc(s.taskId.taskName) : "(deleted task)";
+            const who = s.internId ? esc(s.internId.fullName) : "unknown";
+            const reviewed = s.review ? " ✓ reviewed" : "";
+            return `<option value="${s._id}">${task} — ${who}${reviewed}</option>`;
+          }).join("");
+      } catch (e) {
+        sel.innerHTML = `<option value="">${esc(e.message)}</option>`;
+      }
+    }
+
+    // show the selected submission's link / file / description so the admin can review it
+    function showSubDetails() {
+      const box = document.getElementById("subDetails");
+      const id = document.getElementById("reviewSubId").value;
+      const s = submissionsCache.find(x => x._id === id);
+      if (!s) { box.className = "sub-details hidden"; box.innerHTML = ""; return; }
+
+      const desc = s.description
+        ? esc(s.description)
+        : '<span class="none">No description</span>';
+      const link = s.link
+        ? `<a href="${esc(s.link)}" target="_blank" rel="noopener">${esc(s.link)}</a>`
+        : '<span class="none">No link provided</span>';
+      const file = s.document
+        ? `<a class="file-btn" href="${esc(s.document)}" target="_blank" rel="noopener" download>Open / Download file</a>`
+        : '<span class="none">No file uploaded</span>';
+      const reviewed = s.review
+        ? `<div class="field"><span class="k">Existing review</span>${esc(s.review)}</div>`
+        : "";
+
+      box.className = "sub-details";
+      box.innerHTML = `
+        <div class="field"><span class="k">Description</span>${desc}</div>
+        <div class="field"><span class="k">Link</span>${link}</div>
+        <div class="field"><span class="k">File</span>${file}</div>
+        ${reviewed}`;
+
+      // pre-fill the review box with any existing review for convenience
+      document.getElementById("reviewText").value = s.review || "";
+    }
+
+    async function sendReview() {
+      try {
+        const subId = document.getElementById("reviewSubId").value;
+        const review = document.getElementById("reviewText").value.trim();
+        if (!subId) { msg("reviewMsg", "Please select a submission.", false); return; }
+        await api("/submit/review/" + subId, { method: "PATCH", body: { review } });
+        msg("reviewMsg", "Review saved — task marked completed.", true);
+        document.getElementById("reviewText").value = "";
+        loadSubmissions();
+        loadAllTasks();
+      } catch (e) { msg("reviewMsg", e.message, false); }
+    }
+
+    async function deleteIntern() {
+      try {
+        const id = document.getElementById("delInternId").value.trim();
+        if (!id) { msg("delInternMsg", "Intern ID is required.", false); return; }
+        if (!confirm("Delete this intern?")) return;
+        await api("/users/delete-intern/" + id, { method: "DELETE" });
+        msg("delInternMsg", "Intern deleted.", true);
+        loadInterns();
+      } catch (e) { msg("delInternMsg", e.message, false); }
+    }
+
+    async function changePassword(isAdmin) {
+      const sfx = isAdmin ? "A" : "";
+      try {
+        const body = {
+          oldPassword: document.getElementById("oldPw" + sfx).value,
+          newPassword: document.getElementById("newPw" + sfx).value,
+        };
+        await api("/users/change-password", { method: "POST", body });
+        msg("pwMsg" + sfx, "Password changed.", true);
+        document.getElementById("oldPw" + sfx).value = "";
+        document.getElementById("newPw" + sfx).value = "";
+      } catch (e) { msg("pwMsg" + sfx, e.message, false); }
+    }
+
+    // ---------- utils ----------
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
+        ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+    }
+    function fmtDate(d) {
+      if (!d) return "—";
+      try { return new Date(d).toLocaleDateString(); } catch (_) { return d; }
+    }
+
+    // ---------- render ----------
+    function render() {
+      const loggedIn = !!state.token;
+      document.getElementById("authView").classList.toggle("hidden", loggedIn);
+      document.getElementById("internView").classList.toggle("hidden", !(loggedIn && state.role === "user"));
+      document.getElementById("adminView").classList.toggle("hidden", !(loggedIn && state.role === "admin"));
+      document.getElementById("logoutBtn").classList.toggle("hidden", !loggedIn);
+
+      const who = document.getElementById("whoami");
+      if (loggedIn) {
+        who.innerHTML = `${esc(state.name)} <span class="role-badge role-${state.role}">${state.role}</span>`;
+      } else { who.textContent = ""; }
+
+      if (loggedIn && state.role === "user") {
+        document.getElementById("myIdPill").textContent = state.userId;
+        loadMyTasks();
+      }
+      if (loggedIn && state.role === "admin") {
+        loadInterns();
+        loadSubmissions();
+        loadAllTasks();
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>

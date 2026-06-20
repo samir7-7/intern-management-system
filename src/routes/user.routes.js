@@ -5,6 +5,7 @@ import {
   logoutUser,
   changePassword,
   deleteIntern,
+  getAllInterns,
 } from "../controllers/user.controller.js";
 import {
   jwtVerification,
@@ -20,6 +21,6 @@ router.route("/change-password").post(jwtVerification, changePassword);
 router
   .route("/delete-intern/:internId")
   .delete(jwtVerification, verifyAdmin, deleteIntern);
-router;
+router.route("/interns").get(jwtVerification, verifyAdmin, getAllInterns);
 
 export default router;

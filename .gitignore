@@ -57,3 +57,6 @@ test-results/
 # Misc
 *.tgz
 *.swp
+
+# Postman env (contains admin credentials)
+docs/postman_environment.json

@@ -1,5 +1,6 @@
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
+import { Task } from "../models/task.models.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -21,7 +22,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
 const registerUser = async (req, res) => {
   const { fullName, email, password } = req.body;
   //checking if any of the required fields are missing
-  if ([fullName, email, password].some((field) => field.trim() === "")) {
+  if ([fullName, email, password].some((field) => !field || field.trim() === "")) {
     throw new ApiError(400, "All fields are required");
   }
 
@@ -45,10 +46,15 @@ const registerUser = async (req, res) => {
     throw new ApiError(500, "Failed to create user");
   }
 
+  //re-fetch without sensitive fields so the password hash / refreshToken are never returned
+  const createdUser = await User.findById(user._id).select(
+    "-password -refreshToken",
+  );
+
   //if user is created successfully then send a success response to the client
   res.status(201).json(
     new ApiResponse(200, "User registered successfully", {
-      createdUser: user,
+      createdUser,
     }),
   );
 };
@@ -56,7 +62,7 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
   //checking if any of the required fields are missing
-  if ([email, password].some((field) => field.trim() === "")) {
+  if ([email, password].some((field) => !field || field.trim() === "")) {
     throw new ApiError(400, "All fields are required");
   }
 
@@ -77,6 +83,11 @@ const loginUser = async (req, res) => {
     user._id,
   );
 
+  //strip sensitive fields so the password hash / refreshToken are never returned
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken",
+  );
+
   const options = {
     httpOnly: true,
     //false during development cause true shows undefined to tokens in postman
@@ -91,7 +102,7 @@ const loginUser = async (req, res) => {
       new ApiResponse(200, "User logged in successfully", {
         accessToken,
         refreshToken,
-        loggedInUser: user,
+        loggedInUser,
       }),
     );
 };
@@ -122,7 +133,7 @@ const logoutUser = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
-    if ([oldPassword, newPassword].some((field) => field.trim() === "")) {
+    if ([oldPassword, newPassword].some((field) => !field || field.trim() === "")) {
       throw new ApiError(400, "All fields are required");
     }
 
@@ -147,6 +158,9 @@ const changePassword = async (req, res) => {
     await user.save();
     res.status(200).json(new ApiResponse(200, "Password changed successfully"));
   } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
     throw new ApiError(500, "Failed to change password");
   }
 };
@@ -161,7 +175,7 @@ const deleteIntern = async (req, res) => {
       return res.status(404).json(new ApiError(404, "Intern not found"));
     }
 
-    if (intern.role !== "intern") {
+    if (intern.role !== "user") {
       return res.status(400).json(new ApiError(400, "User is not an intern"));
     }
 
@@ -222,4 +236,25 @@ const refreshAccessToken = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser, changePassword, logoutUser, deleteIntern };
+// admin-only: list all interns (role "user") with just id + name + email, for assignment dropdowns
+const getAllInterns = async (req, res) => {
+  try {
+    const interns = await User.find({ role: "user" })
+      .select("fullName email")
+      .sort({ fullName: 1 });
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "Interns fetched successfully", { interns }));
+  } catch (error) {
+    return res.status(500).json(new ApiError(500, "Internal Server Error"));
+  }
+};
+
+export {
+  registerUser,
+  loginUser,
+  changePassword,
+  logoutUser,
+  deleteIntern,
+  getAllInterns,
+};

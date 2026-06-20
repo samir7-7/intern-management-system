@@ -2,7 +2,7 @@ import { Submission } from "../models/submission.models.js";
 import { Task } from "../models/task.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import uploadToCloudinary from "../utils/cloudinary.js";
+// import uploadToCloudinary from "../utils/cloudinary.js";
 
 const submitTask = async (req, res) => {
   try {
@@ -33,9 +33,11 @@ const submitTask = async (req, res) => {
     let documentUrl = null;
 
     if (req.file?.path) {
-      const uploaded = await uploadToCloudinary(req.file.path);
+      //not using cloudinary for now because it threw last minute issues in file extension.
+      // const uploaded = await uploadToCloudinary(req.file.path);
 
-      documentUrl = uploaded.secure_url;
+      documentUrl = req.file.path || null;
+      console.log("File uploaded successfully. URL:", documentUrl);
     }
 
     if (!link && !documentUrl) {
@@ -107,4 +109,21 @@ const sendSubmissionReview = async (req, res) => {
     return res.status(500).json(new ApiError(500, "Internal Server Error"));
   }
 };
-export { submitTask, sendSubmissionReview };
+// admin-only: list all submissions with task + intern names, for the review dropdown
+const getAllSubmissions = async (req, res) => {
+  try {
+    const submissions = await Submission.find()
+      .populate("taskId", "taskName status")
+      .populate("internId", "fullName email")
+      .sort({ createdAt: -1 });
+    return res.status(200).json(
+      new ApiResponse(200, "Submissions fetched successfully", {
+        submissions,
+      }),
+    );
+  } catch (error) {
+    return res.status(500).json(new ApiError(500, "Internal Server Error"));
+  }
+};
+
+export { submitTask, sendSubmissionReview, getAllSubmissions };

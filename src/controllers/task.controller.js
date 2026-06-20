@@ -1,4 +1,6 @@
 import { Task } from "../models/task.models.js";
+import { User } from "../models/user.models.js";
+import { Submission } from "../models/submission.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
@@ -7,7 +9,7 @@ const createTask = async (req, res) => {
     const { taskName, description, assignedTo, deadline } = req.body;
     if (
       [taskName, description, assignedTo, deadline].some(
-        (field) => field.trim() === "",
+        (field) => !field || field.trim() === "",
       )
     ) {
       throw new ApiError(400, "All fields are required");
@@ -17,7 +19,7 @@ const createTask = async (req, res) => {
     if (!assignedToUser) {
       throw new ApiError(404, "Assigned user not found");
     }
-    if (assignedToUser.role !== "intern") {
+    if (assignedToUser.role !== "user") {
       throw new ApiError(400, "Only interns can be assigned tasks");
     }
     const task = await Task.create({
@@ -31,6 +33,9 @@ const createTask = async (req, res) => {
       .status(201)
       .json(new ApiResponse(200, "Task created successfully", { task }));
   } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
     throw new ApiError(500, "Internal Server Error");
   }
 };
@@ -99,7 +104,7 @@ const deleteTask = async (req, res) => {
 
     // Delete associated submission if it exists cause when the task is deleted the submission of that task should also be deleted.
     await Submission.findOneAndDelete({
-      task: taskId,
+      taskId: taskId,
     });
 
     await task.deleteOne();

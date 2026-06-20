@@ -1,0 +1,457 @@
+{
+  "info": {
+    "_postman_id": "b2a1d9e4-7c3f-4e21-9f0a-ims2026qa001",
+    "name": "Internship Management System API",
+    "description": "Submission method (multipart, field `submission`). NOTE: In a full Runner pass this returns 400 'Task already submitted' (the link submission in step 8 already used the task) AND the Runner can't attach a file. To actually test file upload: skip the link submit, attach a file here, and Send manually. Cloudinary stores the file and its secure URL.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth / User",
+      "item": [
+        {
+          "name": "Register User (intern)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Generate a unique intern email each run so the collection is re-runnable.",
+                  "const email = 'intern_' + Date.now() + '@example.com';",
+                  "pm.environment.set('internEmail', email);",
+                  "if (!pm.environment.get('internPassword')) {",
+                  "  pm.environment.set('internPassword', 'secret123');",
+                  "}",
+                  "console.log('Registering intern:', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let json; try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "if (json && json.data && json.data.createdUser && json.data.createdUser._id) {",
+                  "  pm.environment.set('internId', json.data.createdUser._id);",
+                  "  console.log('Saved internId:', json.data.createdUser._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test Intern\",\n  \"email\": \"{{internEmail}}\",\n  \"password\": \"{{internPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "register"]
+            },
+            "description": "STEP 1. Creates an intern (role defaults to `user`). Pre-request script generates a unique {{internEmail}}; test script saves {{internId}}. Response excludes the password hash.\n\nSuccess 201: { data: { createdUser } }"
+          }
+        },
+        {
+          "name": "Register - Missing Field (negative)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"No Email\",\n  \"password\": \"secret123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "register"]
+            },
+            "description": "Negative: missing email -> 400 'All fields are required'. Does not change state."
+          }
+        },
+        {
+          "name": "Login - Wrong Password (negative)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"definitely-wrong\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "login"]
+            },
+            "description": "Negative: wrong password -> 400 'Invalid password'."
+          }
+        },
+        {
+          "name": "Login as Admin (saves admin token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let json; try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "if (json && json.data && json.data.accessToken) {",
+                  "  pm.environment.set('adminToken', json.data.accessToken);",
+                  "  console.log('Saved adminToken.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "login"]
+            },
+            "description": "STEP 2. Logs in the auto-seeded admin. Saves {{adminToken}} for all admin-only requests.\n\nSuccess 200: { data: { accessToken, refreshToken, loggedInUser } }"
+          }
+        },
+        {
+          "name": "Login (intern - saves token + ids)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let json; try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "if (json && json.data && json.data.accessToken) {",
+                  "  pm.environment.set('accessToken', json.data.accessToken);",
+                  "  pm.environment.set('refreshToken', json.data.refreshToken);",
+                  "  if (json.data.loggedInUser && json.data.loggedInUser._id) {",
+                  "    pm.environment.set('userId', json.data.loggedInUser._id);",
+                  "  }",
+                  "  console.log('Saved intern accessToken.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{internEmail}}\",\n  \"password\": \"{{internPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "login"]
+            },
+            "description": "STEP 3. Logs in the intern created in step 1 (reuses {{internEmail}}). Saves {{accessToken}} for all intern requests."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Tasks",
+      "item": [
+        {
+          "name": "Create Task (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let json; try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "if (json && json.data && json.data.task && json.data.task._id) {",
+                  "  pm.environment.set('taskId', json.data.task._id);",
+                  "  console.log('Saved taskId:', json.data.task._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"taskName\": \"Build login page\",\n  \"description\": \"Implement the login UI\",\n  \"assignedTo\": \"{{internId}}\",\n  \"deadline\": \"2026-07-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tasks"]
+            },
+            "description": "STEP 4. Admin creates a task and assigns it to {{internId}} (from step 1). assignedBy is set automatically. Status defaults to `pending`. Saves {{taskId}}.\n\nErrors: 400 missing field / assignee not a user; 404 assignee not found; 201 success."
+          }
+        },
+        {
+          "name": "Get All Tasks (admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tasks"]
+            },
+            "description": "STEP 5. Admin lists all tasks (newest first), assignedTo/assignedBy populated. 200."
+          }
+        },
+        {
+          "name": "Get My Tasks (intern)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/my-tasks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tasks", "my-tasks"]
+            },
+            "description": "STEP 6. Intern lists tasks assigned to them. Should include the task created in step 4. 200."
+          }
+        },
+        {
+          "name": "Update Task Status - Invalid Enum (negative)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"done\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tasks", "{{taskId}}"]
+            },
+            "description": "Negative: invalid status value -> 400 ValidationError. Task is NOT modified (safe to run before the real update)."
+          }
+        },
+        {
+          "name": "Update Task Status (intern)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in-progress\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tasks", "{{taskId}}"]
+            },
+            "description": "STEP 7. Intern (the assignee) sets status to `in-progress`. Only the assignee may update. Allowed enum: pending, in-progress, submitted, completed. 200."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Submissions",
+      "item": [
+        {
+          "name": "Submit Task - No link & no file (negative)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"nothing attached\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/submit/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "submit", "{{taskId}}"]
+            },
+            "description": "Negative: neither link nor file -> 400. No submission is created (safe to run before the real submit)."
+          }
+        },
+        {
+          "name": "Submit Task (link)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let json; try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "if (json && json.data && json.data.submission && json.data.submission._id) {",
+                  "  pm.environment.set('submissionId', json.data.submission._id);",
+                  "  console.log('Saved submissionId:', json.data.submission._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Here is my work\",\n  \"link\": \"https://github.com/me/work\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/submit/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "submit", "{{taskId}}"]
+            },
+            "description": "STEP 8. Intern submits via link. Sets task status to `submitted`. One submission per task (unique). Saves {{submissionId}}.\n\nErrors: 403 not assignee; 404 task not found; 400 already submitted; 201 success."
+          }
+        },
+        {
+          "name": "Submit Task (file upload) [manual]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "description", "value": "Work attached", "type": "text" },
+                { "key": "submission", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/submit/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "submit", "{{taskId}}"]
+            },
+            "description": "ALTERNATE submission method (multipart, field `submission`). NOTE: In a full Runner pass this returns 400 'Task already submitted' (the link submission in step 8 already used the task) AND the Runner can't attach a file. To actually test file upload: skip the link submit, attach a file here, and Send manually. Cloudinary stores the file and its secure URL."
+          }
+        },
+        {
+          "name": "Send Submission Review (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"review\": \"Great work, approved.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/submit/review/{{submissionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "submit", "review", "{{submissionId}}"]
+            },
+            "description": "STEP 9. Admin reviews {{submissionId}} (from step 8) and the associated task becomes `completed`.\n\nErrors: 400 review missing; 404 submission / task not found; 200 success."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Cleanup (destructive - runs last)",
+      "item": [
+        {
+          "name": "Change Password (intern)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"{{internPassword}}\",\n  \"newPassword\": \"newsecret456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "change-password"]
+            },
+            "description": "DESTRUCTIVE (changes the intern's password). Runs near the end so it can't break earlier intern logins. 200 on success; 400 if old==new or wrong old password."
+          }
+        },
+        {
+          "name": "Logout (intern)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "logout"]
+            },
+            "description": "DESTRUCTIVE (clears the intern's stored refreshToken). 200."
+          }
+        },
+        {
+          "name": "Delete Task (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tasks", "{{taskId}}"]
+            },
+            "description": "DESTRUCTIVE. Deletes the task created this run and cascades to delete its submission. Runs before Delete Intern so the intern has no active tasks. 200."
+          }
+        },
+        {
+          "name": "Delete Intern (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/delete-intern/{{internId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "delete-intern", "{{internId}}"]
+            },
+            "description": "DESTRUCTIVE. Deletes the intern created this run. Succeeds because the task was already deleted (no active tasks). 200. (Blocked 400 if the intern still has pending/in-progress tasks.)"
+          }
+        }
+      ]
+    }
+  ]
+}

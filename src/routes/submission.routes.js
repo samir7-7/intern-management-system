@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   submitTask,
   sendSubmissionReview,
+  getAllSubmissions,
 } from "../controllers/submission.controller.js";
 import {
   jwtVerification,
@@ -11,11 +12,13 @@ import upload from "../middlewares/multer.middleware.js";
 
 const router = Router();
 
+router.route("/").get(jwtVerification, verifyAdmin, getAllSubmissions);
+
 router
   .route("/:taskId")
   .post(jwtVerification, upload.single("submission"), submitTask);
 
 router
-  .route("/review/:taskId")
-  .get(jwtVerification, verifyAdmin, sendSubmissionReview);
+  .route("/review/:submissionId")
+  .patch(jwtVerification, verifyAdmin, sendSubmissionReview);
 export default router;
