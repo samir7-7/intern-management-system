@@ -90,12 +90,20 @@ const updateTaskStatus = async (req, res) => {
 const deleteTask = async (req, res) => {
   try {
     const { taskId } = req.params;
+
     const task = await Task.findById(taskId);
+
     if (!task) {
       return res.status(404).json(new ApiError(404, "Task not found"));
     }
 
-    await task.remove();
+    // Delete associated submission if it exists cause when the task is deleted the submission of that task should also be deleted.
+    await Submission.findOneAndDelete({
+      task: taskId,
+    });
+
+    await task.deleteOne();
+
     return res
       .status(200)
       .json(new ApiResponse(200, "Task deleted successfully", { task }));
@@ -106,4 +114,19 @@ const deleteTask = async (req, res) => {
   }
 };
 
-export { createTask, getUserTasks, updateTaskStatus, deleteTask };
+// this controller will be used by the admin to get all the tasks in the system
+const getAllTasks = async (req, res) => {
+  try {
+    const tasks = await Task.find()
+      .populate("assignedTo", "fullName")
+      .populate("assignedBy", "fullName")
+      .sort({ createdAt: -1 });
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "All tasks fetched successfully", { tasks }));
+  } catch (error) {
+    return res.status(500).json(new ApiError(500, "Internal Server Error"));
+  }
+};
+
+export { createTask, getUserTasks, updateTaskStatus, deleteTask, getAllTasks };

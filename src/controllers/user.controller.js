@@ -189,4 +189,37 @@ const deleteIntern = async (req, res) => {
   }
 };
 
+const refreshAccessToken = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      throw new ApiError(401, "Refresh token not found");
+    }
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const user = await User.findById(decoded?._id);
+    if (!user || user.refreshToken !== refreshToken) {
+      throw new ApiError(401, "Invalid refresh token");
+    }
+    const { newAccessToken, newRefreshToken } =
+      await generateAccessAndRefreshTokens(user._id);
+
+    options = {
+      httpOnly: true,
+      secure: false,
+    };
+    res
+      .status(200)
+      .cookie("accessToken", newAccessToken, options)
+      .cookie("refreshToken", newRefreshToken, options)
+      .json(
+        new ApiResponse(200, "Access token refreshed", {
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+        }),
+      );
+  } catch (error) {
+    return res.status(500).json(new ApiError(500, "Internal Server Error"));
+  }
+};
+
 export { registerUser, loginUser, changePassword, logoutUser, deleteIntern };

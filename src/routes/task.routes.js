@@ -4,6 +4,7 @@ import {
   getUserTasks,
   updateTaskStatus,
   deleteTask,
+  getAllTasks,
 } from "../controllers/task.controller.js";
 import {
   jwtVerification,
@@ -14,8 +15,11 @@ const router = Router();
 
 router
   .route("/")
-  .get(jwtVerification, getUserTasks)
+  .get(jwtVerification, verifyAdmin, getAllTasks)
   .post(jwtVerification, verifyAdmin, createTask);
+
+//this is for interns to get their assigned task
+router.route("/my-tasks").get(jwtVerification, getUserTasks);
 
 router
   .route("/:taskId")
