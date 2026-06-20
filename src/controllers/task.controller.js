@@ -1,4 +1,4 @@
-import Task from "../models/task.model.js";
+import { Task } from "../models/task.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 

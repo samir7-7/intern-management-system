@@ -5,6 +5,7 @@ const submissionSchema = new mongoose.Schema(
     taskId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Task",
+      unique: true,
     },
     description: {
       type: String,
@@ -14,14 +15,12 @@ const submissionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    document: {
-      type: [String],
-      required: [true, "Submission document is required"],
-    },
-    review: {
+    link: {
       type: String,
-      required: false,
+      trim: true,
     },
+    document: String,
+    review: String,
   },
   { timestamps: true },
 );

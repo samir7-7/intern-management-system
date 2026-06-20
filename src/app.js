@@ -28,8 +28,11 @@ app.use(express.static("public"));
 
 //importing routes
 import userRoutes from "./routes/user.routes.js";
+import taskRoutes from "./routes/task.routes.js";
+import submitRoutes from "./routes/submission.routes.js";
 
 //using routes
 app.use("/api/v1/users", userRoutes);
-
+app.use("/api/v1/tasks", taskRoutes);
+app.use("/api/v1/submit", submitRoutes);
 export default app;
