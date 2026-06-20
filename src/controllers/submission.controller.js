@@ -62,4 +62,34 @@ const submitTask = async (req, res) => {
   }
 };
 
-export { submitTask };
+const sendSubmissionReview = async (req, res) => {
+  try {
+    const { submissionId } = req.params;
+    const { review } = req.body;
+
+    if (!review) {
+      return res.status(400).json(new ApiError(400, "Review is required"));
+    }
+    if (!submissionId) {
+      return res
+        .status(400)
+        .json(new ApiError(400, "Submission ID is required"));
+    }
+
+    const submission = await Submission.findById(submissionId);
+
+    if (!submission) {
+      return res.status(404).json(new ApiError(404, "Submission not found"));
+    }
+    submission.review = review;
+    await submission.save();
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, "Review submitted successfully", { submission }),
+      );
+  } catch (error) {
+    return res.status(500).json(new ApiError(500, "Internal Server Error"));
+  }
+};
+export { submitTask, sendSubmissionReview };
