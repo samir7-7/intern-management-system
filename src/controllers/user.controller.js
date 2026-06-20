@@ -151,4 +151,42 @@ const changePassword = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser, changePassword };
+const deleteIntern = async (req, res) => {
+  try {
+    const { internId } = req.params;
+
+    const intern = await User.findById(internId);
+
+    if (!intern) {
+      return res.status(404).json(new ApiError(404, "Intern not found"));
+    }
+
+    if (intern.role !== "intern") {
+      return res.status(400).json(new ApiError(400, "User is not an intern"));
+    }
+
+    //this validation will check if the intern has active tasks or not if found that intern can't be deleted.
+    const activeTasks = await Task.countDocuments({
+      assignedTo: internId,
+      status: {
+        $in: ["pending", "in-progress"],
+      },
+    });
+
+    if (activeTasks > 0) {
+      return res
+        .status(400)
+        .json(new ApiError(400, "Cannot delete intern with active tasks"));
+    }
+
+    await intern.deleteOne();
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "Intern deleted successfully"));
+  } catch (error) {
+    return res.status(500).json(new ApiError(500, "Internal Server Error"));
+  }
+};
+
+export { registerUser, loginUser, changePassword, logoutUser, deleteIntern };
