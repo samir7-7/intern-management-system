@@ -1,3 +1,3 @@
-const DB_NAME = "internmanagement";
+const DB_NAME = "interndb";
 
 export { DB_NAME };
