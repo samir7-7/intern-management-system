@@ -52,6 +52,9 @@ const submitTask = async (req, res) => {
       document: documentUrl,
     });
 
+    task.status = "submitted";
+    await task.save();
+
     return res
       .status(201)
       .json(
@@ -83,6 +86,18 @@ const sendSubmissionReview = async (req, res) => {
     }
     submission.review = review;
     await submission.save();
+
+    const task = await Task.findById(submission.taskId);
+
+    if (!task) {
+      return res
+        .status(404)
+        .json(new ApiError(404, "Associated task not found"));
+    }
+
+    task.status = "completed";
+    await task.save();
+
     return res
       .status(200)
       .json(
