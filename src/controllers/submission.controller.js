@@ -34,9 +34,9 @@ const submitTask = async (req, res) => {
 
     if (req.file?.path) {
       //not using cloudinary for now because it threw last minute issues in file extension.
-      // const uploaded = await uploadToCloudinary(req.file.path);
+      const uploaded = await uploadToCloudinary(req.file.path);
 
-      documentUrl = req.file.path || null;
+      documentUrl = uploaded?.url || null;
       console.log("File uploaded successfully. URL:", documentUrl);
     }
 
